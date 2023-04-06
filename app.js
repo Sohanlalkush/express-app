@@ -37,7 +37,7 @@ app.post('/', (req, res) => {
         }
       };
 
-      const apiUrl = 'https://api.pawan.krd/api/completions';
+      const apiUrl = 'https://api.pawan.krd/v1/completions';
       const apiReq = https.request(apiUrl, options, (apiRes) => {
         let apiData = '';
 
