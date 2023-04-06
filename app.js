@@ -1,59 +1,78 @@
-const express = require("express");
+const express = require('express');
+const https = require('https');
+
 const app = express();
-const port = process.env.PORT || 3001;
+const port = 3000;
 
-app.get("/", (req, res) => res.type('html').send(html));
+// Set CORS headers
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  next();
+});
 
-app.listen(port, () => console.log(`Example app listening on port ${port}!`));
+// Handle preflight request
+app.options('*', (req, res) => {
+  res.sendStatus(204);
+});
 
+// Handle POST request
+app.post('/', (req, res) => {
+  let body = '';
 
-const html = `
-<!DOCTYPE html>
-<html>
-  <head>
-    <title>Hello from Render!</title>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
-    <script>
-      setTimeout(() => {
-        confetti({
-          particleCount: 100,
-          spread: 70,
-          origin: { y: 0.6 },
-          disableForReducedMotion: true
+  req.on('data', (chunk) => {
+    body += chunk;
+  });
+
+  req.on('end', () => {
+    try {
+      const payload = JSON.parse(body);
+
+      const options = {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer pk-aMWiVVdxaVYluEFHbslyKQEuHPNeNZZIzCRzXhuOAhMJopsP',
+          'Content-Type': 'application/json'
+        }
+      };
+
+      const apiUrl = 'https://api.pawan.krd/api/completions';
+      const apiReq = https.request(apiUrl, options, (apiRes) => {
+        let apiData = '';
+
+        apiRes.on('data', (chunk) => {
+          apiData += chunk;
         });
-      }, 500);
-    </script>
-    <style>
-      @import url("https://p.typekit.net/p.css?s=1&k=vnd5zic&ht=tk&f=39475.39476.39477.39478.39479.39480.39481.39482&a=18673890&app=typekit&e=css");
-      @font-face {
-        font-family: "neo-sans";
-        src: url("https://use.typekit.net/af/00ac0a/00000000000000003b9b2033/27/l?primer=7cdcb44be4a7db8877ffa5c0007b8dd865b3bbc383831fe2ea177f62257a9191&fvd=n7&v=3") format("woff2"), url("https://use.typekit.net/af/00ac0a/00000000000000003b9b2033/27/d?primer=7cdcb44be4a7db8877ffa5c0007b8dd865b3bbc383831fe2ea177f62257a9191&fvd=n7&v=3") format("woff"), url("https://use.typekit.net/af/00ac0a/00000000000000003b9b2033/27/a?primer=7cdcb44be4a7db8877ffa5c0007b8dd865b3bbc383831fe2ea177f62257a9191&fvd=n7&v=3") format("opentype");
-        font-style: normal;
-        font-weight: 700;
-      }
-      html {
-        font-family: neo-sans;
-        font-weight: 700;
-        font-size: calc(62rem / 16);
-      }
-      body {
-        background: white;
-      }
-      section {
-        border-radius: 1em;
-        padding: 1em;
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        margin-right: -50%;
-        transform: translate(-50%, -50%);
-      }
-    </style>
-  </head>
-  <body>
-    <section>
-      Hello from Render!
-    </section>
-  </body>
-</html>
-`
+
+        apiRes.on('end', () => {
+          res.setHeader('Content-Type', 'application/json');
+          res.end(apiData);
+        });
+      });
+
+      apiReq.on('error', (error) => {
+        console.error(error);
+        res.statusCode = 500;
+        res.end();
+      });
+
+      apiReq.write(JSON.stringify(payload));
+      apiReq.end();
+    } catch (error) {
+      console.error(error);
+      res.statusCode = 400;
+      res.end();
+    }
+  });
+});
+
+// Handle all other requests
+app.all('*', (req, res) => {
+  res.status(404).end();
+});
+
+// Start server
+app.listen(port, () => {
+  console.log(`Server running at http://localhost:${port}`);
+});
